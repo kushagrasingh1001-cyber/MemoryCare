@@ -1,0 +1,1 @@
+export default function StatusBadge({status='active',children}){const c={active:'bg-green-100 text-green-800',warning:'bg-amber-100 text-amber-900',alert:'bg-red-100 text-red-800'}[status];return <span className={`inline-flex items-center rounded-full px-3 py-2 font-bold ${c}`}>{children}</span>}

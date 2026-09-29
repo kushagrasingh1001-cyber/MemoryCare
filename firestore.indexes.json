@@ -1,0 +1,1 @@
+{"indexes":[{"collectionGroup":"gameSessions","queryScope":"COLLECTION","fields":[{"fieldPath":"gameType","order":"ASCENDING"},{"fieldPath":"completedAt","order":"DESCENDING"}]},{"collectionGroup":"reminders","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"scheduledTime","order":"ASCENDING"}]}],"fieldOverrides":[]}

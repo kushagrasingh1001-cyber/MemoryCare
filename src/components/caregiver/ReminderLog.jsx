@@ -1,0 +1,1 @@
+import Card from '../ui/Card';export default function ReminderLog({items=[]}){return <Card><h2 className="text-xl mb-3">Reminder Log</h2><div className="space-y-2">{items.map(x=><div key={x.id} className="flex justify-between border-b py-2"><span>{x.title}</span><b>{x.status}</b></div>)}</div></Card>}

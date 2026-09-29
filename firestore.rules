@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function hasProfile() { return signedIn() && exists(userPath(request.auth.uid)); }
+    function me() { return get(userPath(request.auth.uid)); }
+    function member(groupId) { return hasProfile() && me().data.groupId == groupId; }
+    function caregiver() { return hasProfile() && me().data.role == 'caregiver'; }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (
+        request.auth.uid == uid ||
+        (hasProfile() && resource.data.groupId == me().data.groupId)
+      );
+
+      // Spark/demo bootstrap: a newly authenticated account may create only its own profile.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.role in ['patient', 'caregiver'];
+
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.groupId == resource.data.groupId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name','phone','photoUrl','lastActiveTimestamp','lastActivityType',
+          'stats','currentDifficultyLevel'
+        ]);
+      allow delete: if false;
+
+      match /gameSessions/{sid} {
+        allow read: if signedIn() && member(get(userPath(uid)).data.groupId);
+        allow create: if signedIn() && request.auth.uid == uid;
+        allow update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.patientUid == resource.data.patientUid
+          && request.resource.data.groupId == resource.data.groupId;
+        allow delete: if false;
+      }
+
+      match /fcmTokens/{tid} {
+        allow read, write: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    match /groups/{gid} {
+      // Existing members can read. A brand-new authenticated caregiver can read during invite join.
+      allow read: if signedIn() && (member(gid) || !hasProfile());
+
+      // Patient creates a group whose ID is tied to their UID.
+      allow create: if signedIn()
+        && gid == 'group_' + request.auth.uid
+        && request.resource.data.patientUid == request.auth.uid
+        && request.resource.data.caregiverUids.size() == 0;
+
+      // Spark/demo join: only add the caller, one caregiver at a time, max four.
+      allow update: if signedIn()
+        && !hasProfile()
+        && request.resource.data.patientUid == resource.data.patientUid
+        && request.resource.data.inviteCode == resource.data.inviteCode
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUids'])
+        && resource.data.caregiverUids.size() < 4
+        && request.resource.data.caregiverUids.size() == resource.data.caregiverUids.size() + 1
+        && request.auth.uid in request.resource.data.caregiverUids
+        && request.resource.data.caregiverUids.hasAll(resource.data.caregiverUids);
+      allow delete: if false;
+
+      match /memoryGallery/{memoryId} {
+        allow read: if member(gid);
+        allow create: if caregiver() && member(gid)
+          && request.resource.data.createdBy == request.auth.uid;
+        allow update, delete: if caregiver() && member(gid);
+      }
+
+      match /pagerData/{pagerId} {
+        allow read: if member(gid);
+        allow create, update, delete: if caregiver() && member(gid);
+      }
+
+      match /alerts/{aid} {
+        allow read: if member(gid);
+        allow update: if caregiver() && member(gid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'acknowledged','acknowledgedAt','acknowledgedBy'
+          ]);
+        allow create, delete: if false;
+      }
+    }
+
+    match /inviteCodes/{code} {
+      // A newly authenticated caregiver can resolve an invite code.
+      allow get: if signedIn() && !hasProfile();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.patientUid == request.auth.uid
+        && request.resource.data.groupId == 'group_' + request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /activityLogs/{id} {
+      allow read: if member(resource.data.groupId);
+      allow create: if signedIn()
+        && request.resource.data.patientUid == request.auth.uid
+        && member(request.resource.data.groupId);
+      allow update, delete: if false;
+    }
+
+    match /reminders/{id} {
+      allow read: if signedIn() && member(resource.data.groupId);
+      allow create: if caregiver() && member(request.resource.data.groupId);
+      allow update: if signedIn() && member(resource.data.groupId);
+      allow delete: if caregiver() && member(resource.data.groupId);
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

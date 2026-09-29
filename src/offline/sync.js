@@ -1,0 +1,3 @@
+import {doc,setDoc,serverTimestamp} from 'firebase/firestore'; import {db} from '../firebase/firebase'; import {localDB} from './db';
+export async function saveGameSessionOffline(session){await localDB.gameSessions.put({...session,synced:0,completedAt:session.completedAt||Date.now()});}
+export async function syncGameSessions(){if(!navigator.onLine)return 0; const rows=await localDB.gameSessions.where('synced').equals(0).toArray(); let n=0; for(const s of rows){await setDoc(doc(db,'users',s.patientUid,'gameSessions',s.sessionId),{...s,synced:true,syncedAt:serverTimestamp()},{merge:true}); await localDB.gameSessions.update(s.sessionId,{synced:1}); n++;} return n;}
