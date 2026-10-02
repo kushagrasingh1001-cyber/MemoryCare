@@ -70,3 +70,109 @@
 .pager-danger-actions .pager-clear-device,.pager-danger-actions .pager-clear-all{width:100%;min-height:58px;margin-top:0}
 @media(max-width:900px){.pager-danger-wide{grid-template-columns:1fr}.pager-danger-actions{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.pager-danger-actions{grid-template-columns:1fr}}
+
+/* ============================================================
+   V9 — fixes: language picker, account recovery, family manager,
+   pager diagnostics console, extra safety styles
+   ============================================================ */
+
+/* ---- language picker (4 languages) ---- */
+.language-picker{position:relative}
+.language-trigger{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 16px;border-radius:16px;font-weight:900;color:#12304a;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);box-shadow:0 7px 16px rgba(18,48,74,.12);transition:.18s}
+.language-trigger:hover{transform:translateY(-2px)}
+.language-backdrop{position:fixed;inset:0;background:transparent;border:0;z-index:70}
+.language-menu{position:absolute;right:0;top:calc(100% + 10px);z-index:80;min-width:230px;padding:8px;border-radius:22px;background:rgba(255,252,247,.98);border:1px solid rgba(255,255,255,.9);box-shadow:0 22px 45px rgba(18,48,74,.22)}
+.language-menu button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:54px;padding:10px 14px;border-radius:16px;text-align:left;color:#12304a;font-weight:800}
+.language-menu button:hover{background:rgba(36,116,97,.09)}
+.language-menu button span{display:flex;flex-direction:column}
+.language-menu small{font-weight:600;opacity:.6}
+.language-menu .language-active{background:rgba(255,123,86,.16)}
+@media(max-width:760px){.language-trigger span{display:none}.language-trigger{padding:0 14px}.language-menu{right:-6px;min-width:210px}}
+
+/* ---- auth extras ---- */
+.auth-link{display:inline-flex;align-items:center;gap:8px;margin-top:6px;font-weight:800;color:#1e5d50;background:none;border:0;text-decoration:underline}
+.auth-note{margin-top:14px;padding:14px 16px;border-radius:16px;background:#e7f7ef;color:#12684c;font-weight:800}
+.auth-error{margin-top:14px;padding:14px 16px;border-radius:16px;background:#ffe9e6;color:#a02b1c;font-weight:800}
+.auth-secondary{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:56px;margin-top:12px;border-radius:18px;font-weight:900;color:#1e5d50;background:rgba(255,255,255,.85);border:2px solid #247461}
+.invite-share-note{margin:14px 0 4px;font-size:.95rem;opacity:.72}
+
+/* ---- account recovery / error screens ---- */
+.recovery-card{width:min(880px,100%);padding:34px;border-radius:34px;background:rgba(255,252,247,.97);border:1px solid rgba(255,255,255,.9);box-shadow:0 30px 70px rgba(18,48,74,.22)}
+.recovery-icon{display:grid;place-items:center;width:62px;height:62px;border-radius:20px;margin-bottom:16px;color:white;background:linear-gradient(145deg,#ffa94d,#ff6b4a);box-shadow:0 8px 0 #cf5138}
+.recovery-danger .recovery-icon{background:linear-gradient(145deg,#fb7185,#e11d48);box-shadow:0 8px 0 #9f1239}
+.recovery-info .recovery-icon{background:linear-gradient(145deg,#4bd8ef,#189cc7);box-shadow:0 8px 0 #166f8d}
+.recovery-body{margin-top:10px;line-height:1.65;color:#3d5766}
+.recovery-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:22px}
+.recovery-block{padding:20px;border-radius:24px;background:#f6fbf9;border:1px solid #dceee8}
+.recovery-block h2{display:flex;align-items:center;gap:8px;font-size:1.1rem;margin-bottom:6px}
+.recovery-block p{font-size:.98rem;opacity:.8;margin-bottom:12px}
+.recovery-note{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:14px;border-radius:16px;background:#eef7ff;color:#1b4a70;font-weight:800}
+.recovery-hint{margin-top:10px;font-size:.92rem;color:#a02b1c;font-weight:700}
+.recovery-signout{display:inline-flex;align-items:center;gap:8px;margin-top:22px;font-weight:800;color:#9d352c;background:none;border:0;text-decoration:underline}
+.recovery-code{margin-top:10px;padding:12px;border-radius:14px;background:#f2f5f7;font-family:ui-monospace,monospace;font-size:.85rem;word-break:break-all}
+
+/* ---- loading ---- */
+.loading-card{display:flex;align-items:center;gap:14px;padding:22px 28px;border-radius:26px;background:rgba(255,255,255,.85);box-shadow:0 18px 40px rgba(18,48,74,.15);font-weight:900}
+.loading-dot{width:16px;height:16px;border-radius:50%;background:#247461;animation:loadingPulse 1s ease-in-out infinite}
+@keyframes loadingPulse{0%,100%{transform:scale(.7);opacity:.5}50%{transform:scale(1.1);opacity:1}}
+
+/* ---- family / caregiver manager ---- */
+.family-invite-card{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-top:22px;padding:26px;border-radius:30px;background:rgba(255,250,241,.84);border:1px solid rgba(255,255,255,.92);box-shadow:0 16px 34px rgba(18,48,74,.13)}
+.family-invite-icon{display:grid;place-items:center;width:62px;height:62px;border-radius:20px;color:white;background:linear-gradient(145deg,#4bd8ef,#189cc7);box-shadow:0 7px 0 #166f8d}
+.family-code{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:950;letter-spacing:.18em;margin-top:6px}
+.family-hint{margin-top:8px;opacity:.75}
+.family-count{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:800}
+.family-invite-actions{display:grid;gap:12px;min-width:220px}
+.family-member{display:flex;align-items:center;gap:16px;padding:20px;border-radius:26px;background:rgba(255,250,241,.86);border:1px solid rgba(255,255,255,.92);box-shadow:0 12px 26px rgba(18,48,74,.11)}
+.family-avatar{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;color:white;background:linear-gradient(145deg,#8c79ff,#5547e8);box-shadow:0 6px 0 #4638bf;flex:none}
+.family-avatar.is-patient{background:linear-gradient(145deg,#ff956c,#ff5547);box-shadow:0 6px 0 #d84631}
+.family-you{display:inline-flex;padding:4px 10px;border-radius:999px;font-size:.75rem;font-weight:900;background:#e7f7ef;color:#12684c}
+.family-role{font-weight:800;opacity:.75;font-size:.95rem}
+.family-line{font-size:.95rem;opacity:.7}
+.family-remove{display:grid;place-items:center;width:56px;height:56px;flex:none;border-radius:18px;color:#be123c;background:#ffe4e6;border:0;transition:.18s}
+.family-remove:hover{transform:translateY(-2px);box-shadow:0 8px 0 #f3c4cb}
+.family-remove:active{transform:translateY(3px);box-shadow:none}
+
+/* ---- pager diagnostics + transport ---- */
+.pager-protocol-line{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.95rem;font-weight:700;opacity:.8}
+.pager-switch{display:flex;align-items:flex-start;gap:12px;margin-top:14px;padding:14px;border-radius:18px;background:rgba(255,255,255,.7);border:1px solid rgba(18,48,74,.08)}
+.pager-switch input{width:24px;height:24px;flex:none;margin-top:2px}
+.pager-switch span{display:flex;flex-direction:column}
+.pager-switch small{opacity:.7;font-size:.9rem}
+.pager-accordion{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;font-weight:900;font-size:1.05rem;color:#12304a;background:none;border:0}
+.pager-console{margin-top:14px;padding:14px;max-height:240px;overflow:auto;border-radius:16px;background:#07191f;color:#c8fff0;font-family:ui-monospace,monospace;font-size:.85rem;line-height:1.5}
+.pager-console-line{display:flex;gap:8px;padding:3px 0;word-break:break-word}
+.pager-console-line.is-in{color:#9be8ff}
+.pager-console-line.is-out{color:#ffe1a1}
+.pager-console-line.is-ok{color:#9dffc4}
+.pager-console-line.is-error,.pager-console-line.is-warn{color:#ff9d9d}
+.pager-console-empty{opacity:.6}
+.pager-services{margin-top:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.72);font-size:.82rem;font-family:ui-monospace,monospace;word-break:break-all}
+.pager-services li{padding:3px 0;opacity:.8}
+.pager-services li.is-ok{color:#12684c;font-weight:800}
+.pager-ok{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:800;color:#12684c}
+.pager-warn{display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding:12px;border-radius:14px;background:#fff4e2;color:#8a5312;font-weight:700;font-size:.92rem}
+.pager-hint{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:.92rem;opacity:.78}
+.pager-note{margin-top:10px;padding:12px;border-radius:14px;background:#eef7ff;color:#1b4a70;font-weight:700;font-size:.92rem;word-break:break-word}
+.pager-steps{margin-top:10px;display:grid;gap:8px;font-size:.95rem;opacity:.85}
+.pager-link{display:inline-flex;margin-top:14px;font-weight:900;color:#1e5d50;text-decoration:underline}
+.oled-small{min-height:auto;max-height:220px;overflow:auto;font-size:.8rem}
+.oled span{word-break:break-word}
+
+/* ---- reminders ---- */
+.reminder-snooze{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-weight:800;color:#1e5d50;background:none;border:0;text-decoration:underline}
+.reminder-status{display:inline-flex;padding:4px 10px;border-radius:999px;font-size:.8rem;font-weight:900}
+.reminder-status.is-pending{background:#fff3d6;color:#8a5312}
+.reminder-status.is-done{background:#e7f7ef;color:#12684c}
+.reminder-status.is-missed{background:#ffe4e6;color:#9f1239}
+.quick-time-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.quick-time{min-height:48px;padding:0 16px;border-radius:14px;font-weight:800;background:#eef7ff;color:#1b4a70;border:0}
+.gallery-delete{position:absolute;top:12px;right:12px;display:grid;place-items:center;width:48px;height:48px;border-radius:14px;color:#be123c;background:rgba(255,255,255,.92);border:0;box-shadow:0 8px 18px rgba(18,48,74,.18)}
+.gallery-card{position:relative}
+.leave-space-block{margin-top:26px;padding:22px;border-radius:26px;background:rgba(255,250,241,.7);border:1px dashed rgba(18,48,74,.22)}
+
+/* Five navigation items now that the Memory Gallery has its own tab. */
+.nav-inner{grid-template-columns:repeat(5,1fr)}
+.nav-item{font-size:.74rem;gap:2px}
+.nav-icon{display:grid;place-items:center}
+@media(max-width:420px){.nav-item{font-size:.66rem}.nav-inner{padding:6px}}

@@ -19,8 +19,35 @@ React + Vite, React Router, Tailwind CSS, Firebase Authentication, Cloud Firesto
 - Three patient games: Memory Match, Odd One Out and Daily Routine Sequencing.
 - Rule-based adaptive difficulty using the rolling average of the last five sessions: >=80% raises the level, <40% lowers it, otherwise it stays unchanged (levels 1–5).
 - Medicine, hydration and appointment reminders. Pending reminders that remain unacknowledged for 15 minutes are marked missed and caregivers are notified.
-- English/Hindi translation files and Web Speech API narration; localization is structured to add Assamese, Khasi, Manipuri and other NER languages later.
+- **Four languages**: English, हिन्दी, অসমীয়া (Assamese) and মৈতৈলোন্ (Manipuri, Bengali script), including localised game word lists and Web Speech API narration (`as-IN` / `mni-IN` with fallbacks).
+- **Family management**: the patient can see every linked caregiver and remove one (with confirmation); a caregiver can leave on their own; a removed caregiver can rejoin with the invite code.
 - Game sessions save to IndexedDB first and sync to Firestore when connectivity returns.
+- **ESP32 pager sync** over Bluetooth LE or USB serial, with automatic service/characteristic discovery, chunked writes, pager replies and a live diagnostics console.
+
+## ESP32 pager
+
+The caregiver dashboard has a **Pager Management** screen that writes a separate
+offline dataset (About Me, Routine, Medicines, Contacts, Emergency) to the pager.
+The matching firmware lives in [`hardware/MemoryCarePager`](hardware/MemoryCarePager/MemoryCarePager.ino),
+the wire protocol is documented in [`docs/PAGER_PROTOCOL.md`](docs/PAGER_PROTOCOL.md)
+and wiring/flashing steps are in [`hardware/README.md`](hardware/README.md).
+
+If you flashed your own sketch, tick *Show all Bluetooth devices* and open
+*Connection & diagnostics* — the app discovers the writable characteristic itself
+and shows everything it sends and receives.
+
+## Languages
+
+| Code | Language | Notes |
+|---|---|---|
+| `en` | English | default |
+| `hi` | हिन्दी | Hindi |
+| `as` | অসমীয়া | Assamese (Bengali script) |
+| `mni` | মৈতৈলোন্ | Manipuri (Bengali script) |
+
+Translation files live in `src/translations/`. See
+[`docs/translation-review.md`](docs/translation-review.md) before a public launch — the
+Assamese and Manipuri strings are best-effort and should be checked by a native speaker.
 
 ## Setup
 
@@ -37,7 +64,10 @@ React + Vite, React Router, Tailwind CSS, Firebase Authentication, Cloud Firesto
 
 ## Routes
 
-`/signup/patient`, `/signup/caregiver`, `/join`, `/patient/home`, `/patient/games/:gameType`, `/patient/reminders`, `/caregiver/dashboard`, `/caregiver/reminders`, `/caregiver/history`.
+`/signup/patient`, `/signup/caregiver`, `/join`, `/account-help` (profile recovery),
+`/patient/home`, `/patient/games/:gameType`, `/patient/reminders`, `/patient/family`,
+`/memory-gallery`, `/caregiver/dashboard`, `/caregiver/reminders`, `/caregiver/history`,
+`/caregiver/pager`.
 
 ## Demo flow
 
@@ -50,6 +80,12 @@ MemoryCare uses a rule-based adaptive AI layer that continuously personalizes co
 ## Architecture diagram description
 
 Place **Patient PWA** on the left and **Caregiver Dashboard** on the right. In the center place a large **Firebase** block containing Authentication, Cloud Firestore, Cloud Functions and Firebase Cloud Messaging. Draw bidirectional arrows from both apps to Firebase. Under the Patient PWA add an **Offline Layer (Dexie / IndexedDB)**: game sessions write locally first, then a Sync Service uploads them to Firestore when connectivity returns. Between the patient games and Firestore show the **Adaptive Difficulty Engine**, which reads recent game-session accuracy and writes the next per-game difficulty level. From Cloud Functions draw outgoing FCM arrows to both apps: patient reminder notifications and caregiver inactivity/missed-reminder alerts. Inside Firestore show the shared Patient Group model: **1 Patient + up to 4 Caregivers**, with users, groups, reminders, activity logs, game sessions and alerts. This illustrates the complete flow: **Patient App ↔ Firebase ↔ Caregiver App**, with offline synchronization and adaptive difficulty as supporting layers.
+
+## What changed in v9
+
+See [`FIXES_V9.md`](FIXES_V9.md) for the full list: deterministic role routing after
+login, caregiver removal, the rebuilt pager Bluetooth/USB transport plus the ESP32
+sketch, and the Assamese/Manipuri languages.
 
 ## Important prototype note
 

@@ -1,34 +1,61 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---------- helpers ----------
     function signedIn() { return request.auth != null; }
     function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function groupPath(gid) { return /databases/$(database)/documents/groups/$(gid); }
     function hasProfile() { return signedIn() && exists(userPath(request.auth.uid)); }
     function me() { return get(userPath(request.auth.uid)); }
-    function member(groupId) { return hasProfile() && me().data.groupId == groupId; }
-    function caregiver() { return hasProfile() && me().data.role == 'caregiver'; }
+    function groupDoc(gid) { return get(groupPath(gid)); }
 
+    // Membership is always read from the group document itself. Because of this,
+    // removing a caregiver from `caregiverUids` revokes access immediately - even
+    // if that caregiver's own profile still points at the old groupId.
+    function isGroupPatient(gid) {
+      return hasProfile() && me().data.role == 'patient' && groupDoc(gid).data.patientUid == request.auth.uid;
+    }
+    function isGroupCaregiver(gid) {
+      return hasProfile() && me().data.role == 'caregiver' && groupDoc(gid).data.caregiverUids.hasAny([request.auth.uid]);
+    }
+    function member(gid) { return isGroupPatient(gid) || isGroupCaregiver(gid); }
+
+    // ---------- users ----------
     match /users/{uid} {
+      // Own profile, or a profile of somebody in a care space I am part of.
       allow read: if signedIn() && (
         request.auth.uid == uid ||
-        (hasProfile() && resource.data.groupId == me().data.groupId)
+        (hasProfile() && resource.data.groupId is string && member(resource.data.groupId))
       );
 
-      // Spark/demo bootstrap: a newly authenticated account may create only its own profile.
+      // A newly authenticated account may create only its own profile.
       allow create: if signedIn()
         && request.auth.uid == uid
         && request.resource.data.uid == uid
         && request.resource.data.role in ['patient', 'caregiver'];
 
-      allow update: if signedIn()
-        && request.auth.uid == uid
+      // Self updates (name, phone, activity, stats, difficulty) plus leaving a group.
+      // A user can never change their own role or uid.
+      allow update: if signedIn() && request.auth.uid == uid
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.role == resource.data.role
-        && request.resource.data.groupId == resource.data.groupId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'name','phone','photoUrl','lastActiveTimestamp','lastActivityType',
-          'stats','currentDifficultyLevel'
+          'name','phone','photoUrl','email','lastActiveTimestamp','lastActivityType',
+          'stats','currentDifficultyLevel','groupId','leftGroupAt','removedFromGroupAt','joinedAt'
         ]);
+
+      // The patient who owns the group may detach a removed caregiver's profile
+      // (set groupId to null). Nothing else can be changed by another user.
+      allow update: if signedIn()
+        && hasProfile()
+        && resource.data.groupId is string
+        && isGroupPatient(resource.data.groupId)
+        && request.resource.data.groupId == null
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['groupId','removedFromGroupAt']);
+
       allow delete: if false;
 
       match /gameSessions/{sid} {
@@ -45,8 +72,10 @@ service cloud.firestore {
       }
     }
 
+    // ---------- groups ----------
     match /groups/{gid} {
-      // Existing members can read. A brand-new authenticated caregiver can read during invite join.
+      // Members can read. A signed-in user without a profile (or a caregiver whose
+      // profile has no active group) can read while resolving an invite code.
       allow read: if signedIn() && (member(gid) || !hasProfile());
 
       // Patient creates a group whose ID is tied to their UID.
@@ -55,33 +84,67 @@ service cloud.firestore {
         && request.resource.data.patientUid == request.auth.uid
         && request.resource.data.caregiverUids.size() == 0;
 
-      // Spark/demo join: only add the caller, one caregiver at a time, max four.
-      allow update: if signedIn()
-        && !hasProfile()
-        && request.resource.data.patientUid == resource.data.patientUid
-        && request.resource.data.inviteCode == resource.data.inviteCode
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUids'])
-        && resource.data.caregiverUids.size() < 4
-        && request.resource.data.caregiverUids.size() == resource.data.caregiverUids.size() + 1
-        && request.auth.uid in request.resource.data.caregiverUids
-        && request.resource.data.caregiverUids.hasAll(resource.data.caregiverUids);
+      // Joining and leaving.
+      //  A) brand-new account with no profile yet joins with the invite code.
+      //  B) a caregiver with no active group (removed or left) rejoins with the invite code.
+      // The joiner must echo the group's invite code inside `lastJoin`. The code is
+      // never readable without the group document, so this proves the caller really
+      // knows the invite code instead of only guessing a group id.
+      function provedInviteCode() {
+        return request.resource.data.lastJoin.code == resource.data.inviteCode
+          && request.resource.data.lastJoin.uid == request.auth.uid;
+      }
+      function joinSelf() {
+        return request.resource.data.patientUid == resource.data.patientUid
+          && request.resource.data.inviteCode == resource.data.inviteCode
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUids','lastJoin'])
+          && provedInviteCode()
+          && resource.data.caregiverUids.size() < 4
+          && request.resource.data.caregiverUids.size() == resource.data.caregiverUids.size() + 1
+          && request.auth.uid in request.resource.data.caregiverUids
+          && request.resource.data.caregiverUids.hasAll(resource.data.caregiverUids);
+      }
+      function removeSelf() {
+        return request.resource.data.patientUid == resource.data.patientUid
+          && request.resource.data.inviteCode == resource.data.inviteCode
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUids','lastJoin'])
+          && resource.data.caregiverUids.hasAny([request.auth.uid])
+          && !(request.auth.uid in request.resource.data.caregiverUids)
+          && request.resource.data.caregiverUids.size() == resource.data.caregiverUids.size() - 1
+          && resource.data.caregiverUids.hasAll(request.resource.data.caregiverUids);
+      }
+      // The patient can remove one or more caregivers from their own group.
+      function patientRemovesCaregivers() {
+        return isGroupPatient(gid)
+          && request.resource.data.patientUid == resource.data.patientUid
+          && request.resource.data.inviteCode == resource.data.inviteCode
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUids','lastJoin'])
+          && request.resource.data.caregiverUids.size() <= resource.data.caregiverUids.size()
+          && resource.data.caregiverUids.hasAll(request.resource.data.caregiverUids);
+      }
+
+      allow update: if signedIn() && (
+        (!hasProfile() && joinSelf()) ||
+        (hasProfile() && me().data.groupId == null && joinSelf()) ||
+        (hasProfile() && removeSelf()) ||
+        patientRemovesCaregivers()
+      );
       allow delete: if false;
 
       match /memoryGallery/{memoryId} {
         allow read: if member(gid);
-        allow create: if caregiver() && member(gid)
-          && request.resource.data.createdBy == request.auth.uid;
-        allow update, delete: if caregiver() && member(gid);
+        allow create: if hasProfile() && member(gid) && request.resource.data.createdBy == request.auth.uid;
+        allow update, delete: if hasProfile() && member(gid);
       }
 
       match /pagerData/{pagerId} {
         allow read: if member(gid);
-        allow create, update, delete: if caregiver() && member(gid);
+        allow create, update, delete: if member(gid);
       }
 
       match /alerts/{aid} {
         allow read: if member(gid);
-        allow update: if caregiver() && member(gid)
+        allow update: if hasProfile() && member(gid)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'acknowledged','acknowledgedAt','acknowledgedBy'
           ]);
@@ -89,9 +152,10 @@ service cloud.firestore {
       }
     }
 
+    // ---------- invite codes ----------
     match /inviteCodes/{code} {
-      // A newly authenticated caregiver can resolve an invite code.
-      allow get: if signedIn() && !hasProfile();
+      // Resolvable by a new account or by a caregiver whose profile has no active group.
+      allow get: if signedIn() && (!hasProfile() || me().data.groupId == null);
       allow list: if false;
       allow create: if signedIn()
         && request.resource.data.patientUid == request.auth.uid
@@ -99,8 +163,9 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ---------- activity + reminders ----------
     match /activityLogs/{id} {
-      allow read: if member(resource.data.groupId);
+      allow read: if signedIn() && member(resource.data.groupId);
       allow create: if signedIn()
         && request.resource.data.patientUid == request.auth.uid
         && member(request.resource.data.groupId);
@@ -109,9 +174,9 @@ service cloud.firestore {
 
     match /reminders/{id} {
       allow read: if signedIn() && member(resource.data.groupId);
-      allow create: if caregiver() && member(request.resource.data.groupId);
+      allow create: if signedIn() && hasProfile() && me().data.role == 'caregiver' && member(request.resource.data.groupId);
       allow update: if signedIn() && member(resource.data.groupId);
-      allow delete: if caregiver() && member(resource.data.groupId);
+      allow delete: if signedIn() && hasProfile() && me().data.role == 'caregiver' && member(resource.data.groupId);
     }
 
     match /{document=**} { allow read, write: if false; }
