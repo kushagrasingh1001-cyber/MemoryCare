@@ -16,6 +16,7 @@ import CaregiverDashboard from './pages/caregiver/CaregiverDashboard';
 import CreateReminder from './pages/caregiver/CreateReminder';
 import History from './pages/caregiver/History';
 import OfflineIndicator from './components/OfflineIndicator';
+import ConfigNotice from './components/ConfigNotice';
 import PagerManagement from './pages/caregiver/PagerManagement';
 import MemoryGallery from './pages/MemoryGallery';
 
@@ -36,6 +37,7 @@ function ProfileRecoveryRoute(){
 export default function App(){
   return <BrowserRouter>
     <OfflineIndicator/>
+    <ConfigNotice/>
     <ErrorBoundary>
       <Routes>
         <Route path="/" element={<Root/>}/>

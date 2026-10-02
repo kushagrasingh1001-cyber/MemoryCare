@@ -176,3 +176,8 @@
 .nav-item{font-size:.74rem;gap:2px}
 .nav-icon{display:grid;place-items:center}
 @media(max-width:420px){.nav-item{font-size:.66rem}.nav-inner{padding:6px}}
+
+/* Developer banner shown when Firebase keys are missing (never in production). */
+.config-notice{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:90;display:flex;align-items:flex-start;gap:12px;width:min(760px,calc(100% - 24px));padding:14px 16px;border-radius:20px;background:#fff4e2;color:#6d4310;border:1px solid #f0d3a4;box-shadow:0 16px 34px rgba(18,48,74,.18);font-size:.95rem;font-weight:700}
+.config-notice code{padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.07);font-family:ui-monospace,monospace}
+.config-notice button{margin-left:auto;color:inherit;background:none;border:0;flex:none}
