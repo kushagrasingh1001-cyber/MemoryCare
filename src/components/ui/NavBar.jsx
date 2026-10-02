@@ -1,1 +1,21 @@
-import {Home,Gamepad2,Bell,Users} from 'lucide-react';import {NavLink} from 'react-router-dom';import {useTranslation} from 'react-i18next';export default function NavBar(){const {t}=useTranslation();const items=[['/patient/home',Home,t('home')],['/patient/games',Gamepad2,t('games')],['/patient/reminders',Bell,t('reminders')],['/patient/family',Users,t('family')]];return <nav className="premium-nav"><div className="nav-inner">{items.map(([to,I,label])=><NavLink key={to} to={to} className={({isActive})=>`nav-item ${isActive?'nav-active':''}`}><span className="nav-icon"><I size={24}/></span><span>{label}</span></NavLink>)}</div></nav>}
+import {Home,Gamepad2,Bell,Users,Images} from 'lucide-react';
+import {NavLink} from 'react-router-dom';
+import {useTranslation} from 'react-i18next';
+
+export default function NavBar(){
+  const {t}=useTranslation();
+  const items=[
+    ['/patient/home',Home,t('home')],
+    ['/patient/games',Gamepad2,t('games')],
+    ['/patient/reminders',Bell,t('reminders')],
+    ['/memory-gallery',Images,t('gallery')],
+    ['/patient/family',Users,t('family')],
+  ];
+  return <nav className="premium-nav" aria-label={t('app')}>
+    <div className="nav-inner">
+      {items.map(([to,Icon,label])=><NavLink key={to} to={to} className={({isActive})=>`nav-item ${isActive?'nav-active':''}`}>
+        <span className="nav-icon"><Icon size={24}/></span><span>{label}</span>
+      </NavLink>)}
+    </div>
+  </nav>;
+}

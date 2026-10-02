@@ -1,0 +1,23 @@
+node_modules/
+dist/
+
+.env
+.env.local
+.env.production
+
+*.log
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+# Local environment files (never commit real Firebase keys)
+.env*
+!.env.example
+
+# Build + tooling output
+dist/
+node_modules/
+.firebase/
+*.log

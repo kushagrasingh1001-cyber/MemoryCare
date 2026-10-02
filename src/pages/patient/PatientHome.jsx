@@ -1,3 +1,86 @@
-import {useAuth} from '../../context/AuthContext';import {useEffect,useMemo,useState} from 'react';import {collection,onSnapshot,query,where} from 'firebase/firestore';import {db} from '../../firebase/firebase';import {trackPatientActivity} from '../../services/activityService';import NavBar from '../../components/ui/NavBar';import LanguageToggle from '../../components/LanguageToggle';import LogoutButton from '../../components/LogoutButton';import {Link} from 'react-router-dom';import {useTranslation} from 'react-i18next';import {Brain,Images,Bell,Users,ChevronRight,Sparkles,CalendarCheck} from 'lucide-react';
-const Tile=({to,Icon,title,sub,tone,orb})=><Link to={to} className={`depth-card ${tone} group`}><div className="card-shine"/><div className={`icon-cube ${orb}`}><Icon size={32}/></div><div className="relative z-10"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl md:text-3xl font-black">{title}</h2><span className="arrow-bubble"><ChevronRight/></span></div><p className="mt-2 text-lg opacity-80 max-w-sm">{sub}</p></div></Link>;
-export default function PatientHome(){const {profile}=useAuth(),{t,i18n}=useTranslation();const [reminders,setReminders]=useState([]),[memories,setMemories]=useState([]);useEffect(()=>{if(profile)trackPatientActivity({patientUid:profile.uid,groupId:profile.groupId,type:'app_open',title:'Opened MemoryCare'}).catch(()=>{})},[profile?.uid]);useEffect(()=>{if(!profile?.uid)return;return onSnapshot(query(collection(db,'reminders'),where('patientId','==',profile.uid)),s=>setReminders(s.docs.map(d=>d.data())))},[profile?.uid]);useEffect(()=>{if(!profile?.groupId)return;return onSnapshot(collection(db,'groups',profile.groupId,'memoryGallery'),s=>setMemories(s.docs.map(d=>d.data())))},[profile?.groupId]);const next=useMemo(()=>reminders.filter(x=>x.status==='pending'&&(x.scheduledTime?.toMillis?.()||0)>=Date.now()).sort((a,b)=>a.scheduledTime.toMillis()-b.scheduledTime.toMillis())[0],[reminders]);const memoryCount=memories.length?`${memories.length} ${t('memoriesToRevisit')}`:t('memoriesAppearHere');return <main className="page premium-page"><div className="ambient ambient-one"/><div className="ambient ambient-two"/><div className="max-w-6xl mx-auto relative z-10"><header className="top-shell"><div className="brand-mark"><span className="brand-icon"><Sparkles size={23}/></span><span>MemoryCare</span></div><div className="header-actions"><LanguageToggle/><LogoutButton compact/></div></header><section className="welcome-block"><span className="eyebrow">{profile?.name?`${t('hello')}, ${profile.name}`:'MemoryCare'}</span><h1>{t('welcomePatient')}</h1><p>{t('welcomeSub')}</p></section><section className="today-card"><div className="today-icon"><CalendarCheck/></div><div className="flex-1"><span className="eyebrow">{t('today')}</span><h2>{t('todayPlan')}</h2><div className="today-items"><Link to="/patient/reminders"><b>💊 {next?next.title:t('noUpcomingReminder')}</b><small>{next?.scheduledTime?.toDate?.().toLocaleTimeString(i18n.language==='hi'?'hi-IN':'en-IN',{hour:'2-digit',minute:'2-digit'})||t('allCaughtUp')}</small></Link><Link to="/patient/games"><b>🧠 {t('dailyBrainActivity')}</b><small>{t('chooseShortActivity')}</small></Link><Link to="/memory-gallery"><b>📸 {t('familyMemory')}</b><small>{memoryCount}</small></Link></div></div></section><div className="grid md:grid-cols-2 gap-6 mt-8"><Tile to="/patient/games" Icon={Brain} title={t('brainGames')} sub={t('brainGamesSub')} tone="tone-violet" orb="orb-violet"/><Tile to="/memory-gallery" Icon={Images} title={t('memoryGallery')} sub={t('memoryGallerySub')} tone="tone-coral" orb="orb-coral"/><Tile to="/patient/reminders" Icon={Bell} title={t('myReminders')} sub={t('myRemindersSub')} tone="tone-gold" orb="orb-gold"/><Tile to="/patient/family" Icon={Users} title={t('myFamily')} sub={t('myFamilySub')} tone="tone-cyan" orb="orb-cyan"/></div></div><NavBar/></main>}
+import {useAuth} from '../../context/AuthContext';
+import {useEffect,useMemo,useState} from 'react';
+import {collection,onSnapshot,query,where,orderBy} from 'firebase/firestore';
+import {db} from '../../firebase/firebase';
+import {trackPatientActivity} from '../../services/activityService';
+import NavBar from '../../components/ui/NavBar';
+import LanguageToggle from '../../components/LanguageToggle';
+import LogoutButton from '../../components/LogoutButton';
+import {Link} from 'react-router-dom';
+import {useTranslation} from 'react-i18next';
+import {formatTime} from '../../services/locale';
+import {Brain,Images,Bell,Users,ChevronRight,Sparkles,CalendarCheck} from 'lucide-react';
+
+const Tile=({to,Icon,title,sub,tone,orb})=><Link to={to} className={`depth-card ${tone} group`}>
+  <div className="card-shine"/>
+  <div className={`icon-cube ${orb}`}><Icon size={32}/></div>
+  <div className="relative z-10">
+    <div className="flex items-center justify-between gap-3"><h2 className="text-2xl md:text-3xl font-black">{title}</h2><span className="arrow-bubble"><ChevronRight/></span></div>
+    <p className="mt-2 text-lg opacity-80 max-w-sm">{sub}</p>
+  </div>
+</Link>;
+
+export default function PatientHome(){
+  const {profile}=useAuth();
+  const {t,i18n}=useTranslation();
+  const [reminders,setReminders]=useState([]);
+  const [memories,setMemories]=useState([]);
+
+  useEffect(()=>{
+    if(!profile?.uid)return;
+    trackPatientActivity({patientUid:profile.uid,groupId:profile.groupId,type:'app_open',title:'Opened MemoryCare'}).catch(()=>{});
+  },[profile?.uid]);
+
+  useEffect(()=>{
+    if(!profile?.uid)return;
+    return onSnapshot(query(collection(db,'reminders'),where('patientId','==',profile.uid)),s=>setReminders(s.docs.map(d=>({id:d.id,...d.data()}))));
+  },[profile?.uid]);
+
+  useEffect(()=>{
+    if(!profile?.groupId)return;
+    return onSnapshot(collection(db,'groups',profile.groupId,'memoryGallery'),s=>setMemories(s.docs.map(d=>d.data())));
+  },[profile?.groupId]);
+
+  const next=useMemo(()=>reminders
+    .filter(x=>x.status==='pending'&&(x.scheduledTime?.toMillis?.()||0)>=Date.now())
+    .sort((a,b)=>(a.scheduledTime?.toMillis?.()||0)-(b.scheduledTime?.toMillis?.()||0))[0],[reminders]);
+
+  const memoryCount=memories.length?`${memories.length} ${t('memoriesToRevisit')}`:t('memoriesAppearHere');
+
+  return <main className="page premium-page">
+    <div className="ambient ambient-one"/><div className="ambient ambient-two"/>
+    <div className="max-w-6xl mx-auto relative z-10">
+      <header className="top-shell">
+        <div className="brand-mark"><span className="brand-icon"><Sparkles size={23}/></span><span>{t('app')}</span></div>
+        <div className="header-actions"><LanguageToggle/><LogoutButton compact/></div>
+      </header>
+
+      <section className="welcome-block">
+        <span className="eyebrow">{profile?.name?`${t('hello')}, ${profile.name}`:t('app')}</span>
+        <h1>{t('welcomePatient')}</h1>
+        <p>{t('welcomeSub')}</p>
+      </section>
+
+      <section className="today-card">
+        <div className="today-icon"><CalendarCheck/></div>
+        <div className="flex-1">
+          <span className="eyebrow">{t('today')}</span>
+          <h2>{t('todayPlan')}</h2>
+          <div className="today-items">
+            <Link to="/patient/reminders"><b>💊 {next?next.title:t('noUpcomingReminder')}</b><small>{next?formatTime(next.scheduledTime,i18n.language):t('allCaughtUp')}</small></Link>
+            <Link to="/patient/games"><b>🧠 {t('dailyBrainActivity')}</b><small>{t('chooseShortActivity')}</small></Link>
+            <Link to="/memory-gallery"><b>📸 {t('familyMemory')}</b><small>{memoryCount}</small></Link>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid md:grid-cols-2 gap-6 mt-8">
+        <Tile to="/patient/games" Icon={Brain} title={t('brainGames')} sub={t('brainGamesSub')} tone="tone-violet" orb="orb-violet"/>
+        <Tile to="/memory-gallery" Icon={Images} title={t('memoryGallery')} sub={t('memoryGallerySub')} tone="tone-coral" orb="orb-coral"/>
+        <Tile to="/patient/reminders" Icon={Bell} title={t('myReminders')} sub={t('myRemindersSub')} tone="tone-gold" orb="orb-gold"/>
+        <Tile to="/patient/family" Icon={Users} title={t('myFamily')} sub={t('myFamilySub')} tone="tone-cyan" orb="orb-cyan"/>
+      </div>
+    </div>
+    <NavBar/>
+  </main>;
+}

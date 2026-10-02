@@ -1,0 +1,13 @@
+{
+  "name": "MemoryCare",
+  "short_name": "MemoryCare",
+  "description": "Cognitive activities, family memories and everyday support for dementia care.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4fbf9",
+  "theme_color": "#247461",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
