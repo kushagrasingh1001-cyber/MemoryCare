@@ -29,7 +29,7 @@ ROUTINE|<time>|<title>
 MED|<time>|<medicine>
 CONTACT|<relation>|<name>|<phone>
 EMERGENCY|<number>|<note>
-MCV1|END|<lineCount>                         commit to flash
+MCV1|END|<dataLineCount>                     commit to flash (number of data lines)
 MCV1|DUMP                                    ask for the stored copy
 MCV1|CLEAR_ALL                               erase the stored copy
 ```

@@ -105,9 +105,9 @@ export function buildPayloadLines(data) {
   d.contacts.filter(x => clean(x.name) || clean(x.phone)).forEach(x => lines.push(`CONTACT|${clean(x.relation)}|${clean(x.name)}|${clean(x.phone)}`));
   lines.push(`EMERGENCY|${clean(d.emergency.number)}|${clean(d.emergency.medicalNote)}`);
 
-  lines[0] = `${PROTOCOL_VERSION}|BEGIN|REPLACE_ALL|${lines.length + 1}`;
-
-  lines.push(`${PROTOCOL_VERSION}|END|${lines.length}`);
+  const dataLineCount = lines.length - 1; // everything except the BEGIN line
+  lines[0] = `${PROTOCOL_VERSION}|BEGIN|REPLACE_ALL|${lines.length + 1}`; // + the END line
+  lines.push(`${PROTOCOL_VERSION}|END|${dataLineCount}`);
   return lines;
 }
 

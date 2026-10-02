@@ -37,7 +37,7 @@
 #define TX_UUID      "0000fff2-0000-1000-8000-00805f9b34fb"
 
 #define USE_OLED 0            // set to 1 if you wired an SSD1306 display
-#define MAX_PAYLOAD 4096      // bytes of offline storage kept in NVS
+#define MAX_PAYLOAD 3800      // NVS strings are capped at 4000 bytes by the ESP32
 
 static const int PIN_BTN_UP     = 32;
 static const int PIN_BTN_DOWN   = 33;
@@ -70,7 +70,6 @@ bool receiving = false;
 String menu[] = {"About Me", "My Routine", "Medicines", "Contacts", "Emergency"};
 const int MENU_COUNT = 5;
 int menuIndex = 0;
-int scrollLine = 0;
 String screenLines[8];
 int screenLineCount = 0;
 
@@ -86,10 +85,16 @@ void loadFromFlash() {
 
 void saveToFlash() {
   prefs.begin("memorycare", false);
-  if (stored.length() == 0) prefs.remove("payload");
-  else {
+  if (stored.length() == 0) {
+    prefs.remove("payload");
+  } else {
     String trimmed = stored;
-    if (trimmed.length() > MAX_PAYLOAD) trimmed = trimmed.substring(trimmed.length() - MAX_PAYLOAD);
+    if (trimmed.length() > MAX_PAYLOAD) {
+      // Cut on a line boundary so the pager never shows half an entry.
+      int cut = trimmed.lastIndexOf('\n', MAX_PAYLOAD);
+      trimmed = (cut > 0) ? trimmed.substring(0, cut) : trimmed.substring(0, MAX_PAYLOAD);
+      Serial.println("[MC] warning: payload too long, stored the first lines only");
+    }
     prefs.putString("payload", trimmed);
   }
   prefs.end();
@@ -178,7 +183,6 @@ void refreshScreen() {
 
 void moveMenu(int delta) {
   menuIndex = (menuIndex + delta + MENU_COUNT) % MENU_COUNT;
-  scrollLine = 0;
   refreshScreen();
 }
 

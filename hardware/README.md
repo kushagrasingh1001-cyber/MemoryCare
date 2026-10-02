@@ -95,9 +95,9 @@ Everything is read from the ESP32 flash, so the pager works with no phone and no
 | Line from app | What the pager does | Reply |
 |---|---|---|
 | `MCV1|HELLO` / `MCV1|PING` | handshake | `MCV1|READY|MemoryCarePager|1.0.0` |
-| `MCV1|BEGIN|REPLACE_ALL|<n>` | starts a fresh payload | `MCV1|ACK|BEGIN` |
+| `MCV1|BEGIN|REPLACE_ALL|<totalLines>` | starts a fresh payload | `MCV1|ACK|BEGIN` |
 | `PERSON\|…`, `ROUTINE\|…`, `MED\|…`, `CONTACT\|…`, `EMERGENCY\|…` | buffered as the new payload | – |
-| `MCV1|END|<n>` | saves the payload to flash | `MCV1|SAVED|<count>` |
+| `MCV1|END|<dataLineCount>` | saves the payload to flash | `MCV1|SAVED|<count>` |
 | `MCV1|DUMP` | sends the stored payload back | `MCV1|DATA\|…` … `MCV1|DUMP_END\|<n>` |
 | `MCV1|CLEAR_ALL` | erases the flash copy | `MCV1|CLEARED` |
 
